@@ -30,7 +30,7 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect(
       "success",
       "/sign-up",
-      "Thanks for signing up! Please check your email for a verification link.",
+      "Thanks for signing up! Please check your email for a verification link."
     );
   }
 };
@@ -71,7 +71,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/forgot-password",
-      "Could not reset password",
+      "Could not reset password"
     );
   }
 
@@ -82,7 +82,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   return encodedRedirect(
     "success",
     "/forgot-password",
-    "Check your email for a link to reset your password.",
+    "Check your email for a link to reset your password."
   );
 };
 
@@ -96,7 +96,7 @@ export const resetPasswordAction = async (formData: FormData) => {
     encodedRedirect(
       "error",
       "/protected/reset-password",
-      "Password and confirm password are required",
+      "Password and confirm password are required"
     );
   }
 
@@ -104,7 +104,7 @@ export const resetPasswordAction = async (formData: FormData) => {
     encodedRedirect(
       "error",
       "/protected/reset-password",
-      "Passwords do not match",
+      "Passwords do not match"
     );
   }
 
@@ -116,12 +116,48 @@ export const resetPasswordAction = async (formData: FormData) => {
     encodedRedirect(
       "error",
       "/protected/reset-password",
-      "Password update failed",
+      "Password update failed"
     );
   }
 
   encodedRedirect("success", "/protected/reset-password", "Password updated");
 };
+
+export async function subirReserva({
+  date,
+  name,
+  email,
+  phone,
+}: {
+  date: Date;
+  name: string;
+  email: string;
+  phone: string;
+}) {
+  try {
+    // Insertar los datos de la reserva en la tabla 'reserva'
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("reserva")
+      .insert([
+        {
+          date,
+          name,
+          email,
+          phone,
+        },
+      ])
+      .select();
+
+    if (error) {
+      throw new Error(`Error al insertar reserva: ${error.message}`);
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+}
 
 export const signOutAction = async () => {
   const supabase = await createClient();
