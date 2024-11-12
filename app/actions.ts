@@ -135,13 +135,34 @@ export async function subirReserva({
   phone: string;
 }) {
   try {
-    // Insertar los datos de la reserva en la tabla 'reserva'
+    // Crear el cliente de Supabase
     const supabase = await createClient();
+
+    // Convertir la fecha a formato 'YYYY-MM-DD'
+    const formattedDate = date.toISOString().split("T")[0];
+
+    // Verificar si ya existe una reserva para la misma fecha
+    const { data: existingReservation, error: errorFetch } = await supabase
+      .from("reserva")
+      .select("*")
+      .eq("date", formattedDate)
+      .limit(1);
+
+    if (errorFetch) {
+      throw new Error(`Error al verificar reserva existente: ${errorFetch.message}`);
+    }
+
+    // Si ya existe una reserva, devolver error
+    if (existingReservation && existingReservation.length > 0) {
+      return { success: false, message: "Ya existe una reserva para esta fecha." };
+    }
+
+    // Insertar la nueva reserva
     const { data, error } = await supabase
       .from("reserva")
       .insert([
         {
-          date,
+          date: formattedDate,
           name,
           email,
           phone,
@@ -158,6 +179,7 @@ export async function subirReserva({
     return { success: false, message: err.message };
   }
 }
+
 
 export const signOutAction = async () => {
   const supabase = await createClient();
