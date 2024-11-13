@@ -1,60 +1,86 @@
 "use client";
-import React from "react";
-import { z } from "zod";
-import { Calendar } from "./calendar";
-import { subirReserva } from "@/app/actions";
+import React, { useState, useEffect } from "react";
+import { Calendar } from "./calendar"; // Componente Calendar de ShadCN
+import { subirReserva, obtenerReservas } from "@/app/actions";
+import { horarios } from "@/lib/constantes";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Esquema de validación
-const reservationSchema = z.object({
-  date: z.date().refine((d) => d >= new Date(), {
-    message: "La fecha no puede estar en el pasado",
-  }),
-  name: z.string().min(1, { message: "El nombre es requerido" }),
-  email: z.string().email({ message: "Debe ser un correo válido" }),
-  phone: z.string().regex(/^\d{10,15}$/, {
-    message: "Debe ser un número de teléfono válido (10-15 dígitos)",
-  }),
-});
+// Tipo para los datos de la reserva
+export interface Reserva {
+  date: Date;
+  hour: string;
+  name: string;
+  email: string;
+  phone: string;
+}
 
 export default function Reserva() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [errorMessages, setErrorMessages] = React.useState<string[]>([]);
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [hour, setHour] = useState<string>("");
+  const [disabledDates, setDisabledDates] = useState<Date[]>([]);
+  const [disabledHours, setDisabledHours] = useState<string[]>([]);
+
+  // Obtener reservas para deshabilitar fechas y horarios
+  useEffect(() => {
+    const fetchReservas = async () => {
+      try {
+        const reservas: Reserva[] = await obtenerReservas();
+        if (!reservas || reservas.length === 0) return;
+
+        // Deshabilitar horarios de la fecha seleccionada
+        if (date) {
+          const horariosReservados = reservas
+            .filter((reserva) => {
+              const reservaDate = new Date(reserva.date);
+              // Comparar solo la fecha sin la hora
+              return reservaDate.toISOString().split("T")[0] === date.toISOString().split("T")[0];
+            })
+            .map((reserva) => reserva.hour);
+          setDisabledHours(horariosReservados);
+        }
+      } catch (error) {
+        console.error("Error al obtener las reservas:", error);
+      }
+    };
+
+    fetchReservas();
+  }, [date]);
+
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setErrorMessages([]); // Limpiar errores previos
-
-    try {
-      // Validar datos
-      reservationSchema.parse({ date, name, email, phone });
-
-      // Llamar al Server Action para subir la reserva
-      const response = await subirReserva({ date: date!, name, email, phone });
-
-      if (response.success) {
-        alert("Reserva creada exitosamente.");
-      } else {
-        alert(`Error al crear reserva: ${response.message}`);
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        setErrorMessages(error.errors.map((err) => err.message));
-      }
+    const response = await subirReserva({
+      date: date!,
+      name,
+      email,
+      phone,
+      hour,
+    });
+    if (response.success) {
+      alert("Reserva creada exitosamente.");
+    } else {
+      alert(`Error al crear reserva: ${response.message}`);
     }
   };
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center">
       <Calendar
         mode="single"
         selected={date}
         onSelect={setDate}
         className="rounded-md border"
       />
-      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <form onSubmit={handleSubmit} className="mt-4 space-y-4 w-full max-w-md">
         <label
           htmlFor="selectedDate"
           className="block text-sm font-medium text-gray-700"
@@ -65,7 +91,7 @@ export default function Reserva() {
           type="text"
           id="selectedDate"
           name="selectedDate"
-          value={date ? date.toLocaleDateString() : ""}
+          value={date ? date.toISOString().split("T")[0] : ""} // Formato 'YYYY-MM-DD'
           readOnly
           className="mt-1 p-2 border rounded-md w-full"
         />
@@ -86,7 +112,6 @@ export default function Reserva() {
             required
           />
         </div>
-
         <div>
           <label
             htmlFor="email"
@@ -104,7 +129,6 @@ export default function Reserva() {
             required
           />
         </div>
-
         <div>
           <label
             htmlFor="phone"
@@ -122,7 +146,22 @@ export default function Reserva() {
             required
           />
         </div>
-
+        <Select onValueChange={(valor) => setHour(valor)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Horarios" />
+          </SelectTrigger>
+          <SelectContent>
+            {horarios.map((horario) => (
+              <SelectItem
+                value={horario}
+                key={horario}
+                disabled={disabledHours.includes(horario)}
+              >
+                {horario}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <button
           type="submit"
           className="mt-4 p-2 bg-blue-500 text-white rounded-md"
@@ -130,16 +169,6 @@ export default function Reserva() {
           Reservar
         </button>
       </form>
-      {/* Mensajes de error */}
-      {errorMessages.length > 0 && (
-        <div className="mt-4 text-red-600">
-          <ul>
-            {errorMessages.map((msg, index) => (
-              <li key={index}>{msg}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

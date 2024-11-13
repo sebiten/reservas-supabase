@@ -7,9 +7,9 @@ import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 
 export default async function Index() {
   return (
-    <>
+    <div className="flex gap-4">
     <Reserva/>
     <LastReserva/>
-    </>
+    </div>
   );
 }

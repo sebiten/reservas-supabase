@@ -4,6 +4,7 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Reserva } from "@/components/ui/Reserva";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -128,11 +129,13 @@ export async function subirReserva({
   name,
   email,
   phone,
+  hour,
 }: {
   date: Date;
   name: string;
   email: string;
   phone: string;
+  hour: any;
 }) {
   try {
     // Crear el cliente de Supabase
@@ -146,15 +149,21 @@ export async function subirReserva({
       .from("reserva")
       .select("*")
       .eq("date", formattedDate)
+      .eq("hour", hour)
       .limit(1);
 
     if (errorFetch) {
-      throw new Error(`Error al verificar reserva existente: ${errorFetch.message}`);
+      throw new Error(
+        `Error al verificar reserva existente: ${errorFetch.message}`
+      );
     }
 
     // Si ya existe una reserva, devolver error
     if (existingReservation && existingReservation.length > 0) {
-      return { success: false, message: "Ya existe una reserva para esta fecha." };
+      return {
+        success: false,
+        message: "Ya existe una reserva para esta fecha.",
+      };
     }
 
     // Insertar la nueva reserva
@@ -166,6 +175,7 @@ export async function subirReserva({
           name,
           email,
           phone,
+          hour: String(hour),
         },
       ])
       .select();
@@ -179,7 +189,31 @@ export async function subirReserva({
     return { success: false, message: err.message };
   }
 }
+export async function obtenerReservas(): Promise<Reserva[]> {
+  try {
+    const supabase = await createClient();
 
+    // Obtener todas las reservas de la base de datos
+    const { data: reservas, error } = await supabase
+      .from("reserva")
+      .select("*");
+
+    if (error) {
+      throw new Error(`Error al obtener reservas: ${error.message}`);
+    }
+
+    // Convertir las fechas obtenidas en formato string a objetos Date y formatearlas correctamente
+    return reservas.map((reserva) => ({
+      date: new Date(reserva.date), // Convertir la fecha a un objeto Date
+      hour: reserva.hour,
+      name: reserva.name,
+      email: reserva.email,
+      phone: reserva.phone,
+    }));
+  } catch (err: any) {
+    throw new Error(`Error al obtener reservas: ${err.message}`);
+  }
+}
 
 export const signOutAction = async () => {
   const supabase = await createClient();
