@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Reserva } from "@/components/ui/Reserva";
+import { revalidatePath } from "next/cache";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -179,7 +180,8 @@ export async function subirReserva({
         },
       ])
       .select();
-
+    // recarga la pagina
+    revalidatePath("/");
     if (error) {
       throw new Error(`Error al insertar reserva: ${error.message}`);
     }

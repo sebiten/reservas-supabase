@@ -42,7 +42,10 @@ export default function Reserva() {
             .filter((reserva) => {
               const reservaDate = new Date(reserva.date);
               // Comparar solo la fecha sin la hora
-              return reservaDate.toISOString().split("T")[0] === date.toISOString().split("T")[0];
+              return (
+                reservaDate.toISOString().split("T")[0] ===
+                date.toISOString().split("T")[0]
+              );
             })
             .map((reserva) => reserva.hour);
           setDisabledHours(horariosReservados);
@@ -54,7 +57,6 @@ export default function Reserva() {
 
     fetchReservas();
   }, [date]);
-
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -117,7 +119,7 @@ export default function Reserva() {
             htmlFor="email"
             className="block text-sm font-medium text-gray-700"
           >
-            Email:
+            Email / Obra social:
           </label>
           <input
             type="email"
